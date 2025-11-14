@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import Sidebar from "./components/Sidebar";
-import ChatSection from "./pages/ChatSection";
-import NotesSection from "./pages/NotesSection";
-import QuizSection from "./pages/QuizSection";
-import HistorySection from "./pages/HistorySection";
+import ChatSection from "./Pages/ChatSection";
+import NotesSection from "./Pages/NotesSection";
+import QuizSection from "./Pages/QuizSection";
+import HistorySection from "./Pages/HistorySection";
 
 export default function App() {
   const [activePage, setActivePage] = useState("chat");
