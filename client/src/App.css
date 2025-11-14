@@ -1,0 +1,201 @@
+/* --- Global Variables and Dark/Light Mode Core --- */
+:root {
+    --color-bg-light: #ffffff;
+    --color-bg-dark: #121212;
+    --color-sidebar-light: #f9fafb;
+    --color-sidebar-dark: #1f2937;
+    --color-text-light: #1f2937;
+    --color-text-dark: #f3f4f6;
+    --color-green: #10b981;
+    --color-green-dark: #059669;
+    --color-gray-border-light: #e5e7eb;
+    --color-gray-border-dark: #374151;
+}
+
+/* Global Styles applied when the 'dark' class is present on the root element (body or html) */
+.dark-mode-container {
+    background-color: var(--color-bg-light);
+    color: var(--color-text-light);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark .dark-mode-container {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-dark);
+}
+
+/* --- Layout Sections --- */
+.app {
+    width: 900px;
+    height: 600px;
+    display: flex;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.main-content {
+    flex: 1;
+    padding: 16px;
+    border-right: 1px solid var(--color-gray-border-light);
+}
+.dark .main-content {
+    border-right-color: var(--color-gray-border-dark);
+}
+
+.sidebar {
+    width: 256px;
+    padding: 16px;
+    background-color: var(--color-sidebar-light);
+}
+.dark .sidebar {
+    background-color: var(--color-sidebar-dark);
+}
+
+/* --- Sidebar Header & Toggle --- */
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 16px;
+    font-weight: 600;
+}
+.sidebar-header svg {
+    color: var(--color-green);
+}
+/* Style for the simpler toggle button */
+.toggle-button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+.toggle-button.dark-active {
+    background-color: var(--color-green);
+    color: white;
+}
+.toggle-button.light-active {
+    background-color: #ccc;
+    color: #333;
+}
+
+/* --- Navigation Tabs --- */
+.nav-tabs {
+    display: flex;
+    padding: 4px;
+    margin-bottom: 24px;
+    background-color: var(--color-gray-border-light);
+    border-radius: 12px;
+}
+.dark .nav-tabs {
+    background-color: #374151;
+}
+
+.nav-tab-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+.dark .nav-tab-button {
+    color: var(--color-text-dark);
+}
+
+.nav-tab-button.active {
+    background-color: var(--color-green);
+    color: white;
+}
+.nav-tab-button svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+/* --- Input and Button Base Styles (Crucial for dark mode) --- */
+input, textarea {
+    padding: 8px;
+    border: 1px solid var(--color-gray-border-light);
+    border-radius: 8px;
+    background-color: var(--color-bg-light);
+    color: var(--color-text-light);
+    transition: all 0.2s;
+}
+.dark input, .dark textarea {
+    border-color: var(--color-gray-border-dark);
+    background-color: #374151;
+    color: var(--color-text-dark);
+}
+
+/* --- Notes Section Styles (Consolidated from previous block) --- */
+.notes-heading {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.note-textarea {
+    width: 100%;
+    height: 96px;
+    margin-bottom: 12px;
+    resize: none;
+}
+.note-add-button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 24px;
+    background-color: var(--color-green);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+.note-add-button:hover {
+    background-color: var(--color-green-dark);
+}
+
+.notes-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.note-item {
+    padding: 12px;
+    background-color: var(--color-bg-light);
+    border-radius: 8px;
+    border: 1px solid var(--color-gray-border-light);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.dark .note-item {
+    background-color: #374151;
+    border-color: var(--color-gray-border-dark);
+}
+.note-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #6b7280;
+}
+.dark .note-footer {
+    color: #9ca3af;
+}
+.note-actions button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.edit-button:hover { color: #3b82f6; }
+.delete-button:hover { color: #ef4444; }

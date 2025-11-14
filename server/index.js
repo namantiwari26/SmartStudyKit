@@ -2,156 +2,88 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const agentStore = {};     // maps channel -> { agent_id, meta }
-const agentEvents = {};    // maps channel -> [ {type, text, ts} ... ]
-
-// helper to push events
-function pushEvent(channel, event) {
-  agentEvents[channel] = agentEvents[channel] || [];
-  agentEvents[channel].push({ ...event, ts: Date.now() });
-  
-  if (agentEvents[channel].length > 200) agentEvents[channel].shift();
-}
-
 app.use(cors());
 app.use(express.json());
 
-const APP_ID = process.env.APP_ID;
-const APP_CERT = process.env.APP_CERTIFICATE;
-const CONV_ID = process.env.CONV_AI_CUSTOMER_ID;
-const CONV_SECRET = process.env.CONV_AI_CUSTOMER_SECRET;
+const PORT = process.env.PORT || 4000;
 
-if (!APP_ID || !APP_CERT || !CONV_ID || !CONV_SECRET) {
-  console.error("❌ Missing values in .env file");
-  process.exit(1);
-}
+// In-memory storage (for prototype)
+const quizzes = {};
+const history = [];
 
+// Token endpoint (demo)
 app.post('/token', (req, res) => {
-  try {
-    const { channel, uid } = req.body;
-
-    const role = RtcRole.PUBLISHER;
-    const expire = 3600; // 1 hour
-    const now = Math.floor(Date.now() / 1000);
-    const expiredTs = now + expire;
-
-    const token = RtcTokenBuilder.buildTokenWithUid(
-      APP_ID,
-      APP_CERT,
-      channel,
-      uid || 0,
-      role,
-      expiredTs
-    );
-
-    res.json({ token, appId: APP_ID });
-  } catch (err) {
-    res.status(500).json({ error: 'token error' });
-  }
+  const { channel, uid = 0 } = req.body;
+  // For demo return appId only; production: generate token
+  return res.json({ appId: process.env.APP_ID || null, token: null });
 });
 
-app.post('/convai/stop', async (req, res) => {
-  try {
-    const { agent_id, channel } = req.body;
-    let idToStop = agent_id;
-    if (!idToStop) {
-      if (!channel) return res.status(400).json({ error: 'agent_id or channel required' });
-      const store = agentStore[channel];
-      if (!store) return res.status(400).json({ error: 'no agent found for channel' });
-      idToStop = store.agent_id;
-    }
-
-    const url = `https://api.agora.io/v1/conversational-ai/agents/${idToStop}/leave`;
-    const response = await axios.post(url, {}, {
-      auth: { username: CONV_ID, password: CONV_SECRET }
-    });
-
-    // cleanup
-    if (channel && agentStore[channel]) delete agentStore[channel];
-    pushEvent(channel || 'unknown', { type: 'agent_stopped', text: `agent stopped (${idToStop})` });
-
-    return res.json({ success: true, data: response.data });
-  } catch (err) {
-    console.error('convai stop error', err.response?.data || err.message || err);
-    return res.status(500).json({ error: err.response?.data || err.message });
-  }
-});
-
+// Start ConvAI agent (demo wrapper)
 app.post('/convai/start', async (req, res) => {
+  const { channel = 'default', mode = 'explain' } = req.body;
+  // Build minimal body to create agent (requires ConvAI creds)
+  const systemPrompts = {
+    explain: 'You are SmartStudyKit. Explain concisely in bullets.',
+    quiz: 'You are QuizMaster. Ask short questions and wait for answers.',
+    flashcards: 'You are FlashcardsMaker.'
+  };
+  const body = {
+    app_id: process.env.APP_ID,
+    channel,
+    agent_name: 'smart-study-agent',
+    system_prompt: systemPrompts[mode] || systemPrompts.explain,
+    remote_rtc_uids: ['*'],
+    asr: { language: 'en-US', params: { language_hints: ['en','hi'] } }
+  };
+
   try {
-    const { channel, agent_name = 'smart-study-agent', model = 'gpt-4o-mini' } = req.body;
-    if (!channel) return res.status(400).json({ error: 'channel is required' });
-
-    // Backend callback URL for Agora to POST ASR/LLM events
-    const callbackUrl = process.env.CONVAI_CALLBACK_URL || `http://localhost:${process.env.PORT || 4000}/convai/callback`;
-
-    const body = {
-      app_id: APP_ID,
-      channel,
-      agent_name,
-      model,
-      // subscribe to all so agent can hear anyone: use ['*'] or explicit uids
-      remote_rtc_uids: ['*'],
-      // ask Agora to POST events (ASR transcripts, llm replies etc.)
-      http_callback: {
-        url: callbackUrl,
-      
-      },
-      
-    };
-
-    const response = await axios.post(
-      'https://api.agora.io/v1/conversational-ai/agents',
-      body,
-      { auth: { username: CONV_ID, password: CONV_SECRET } }
-    );
-
-    const data = response.data;
-    // store agent_id keyed by channel for quick stop lookup
-    const agentId = data?.agent_id || data?.id || null;
-    agentStore[channel] = { agent_id: agentId, meta: data };
-    pushEvent(channel, { type: 'agent_created', text: `agent started (${agentId || 'no-id'})` });
-
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error('convai start error', err.response?.data || err.message || err);
-    return res.status(500).json({ error: err.response?.data || err.message });
-  }
-});
-
-app.post('/convai/stop', async (req, res) => {
-  try {
-    const { agent_id, channel } = req.body;
-    let idToStop = agent_id;
-    if (!idToStop) {
-      if (!channel) return res.status(400).json({ error: 'agent_id or channel required' });
-      const store = agentStore[channel];
-      if (!store) return res.status(400).json({ error: 'no agent found for channel' });
-      idToStop = store.agent_id;
-    }
-
-    const url = `https://api.agora.io/v1/conversational-ai/agents/${idToStop}/leave`;
-    const response = await axios.post(url, {}, {
-      auth: { username: CONV_ID, password: CONV_SECRET }
+    const resp = await axios.post('https://api.agora.io/v1/conversational-ai/agents', body, {
+      auth: { username: process.env.CONV_AI_CUSTOMER_ID, password: process.env.CONV_AI_CUSTOMER_SECRET }
     });
-
-    // cleanup
-    if (channel && agentStore[channel]) delete agentStore[channel];
-    pushEvent(channel || 'unknown', { type: 'agent_stopped', text: `agent stopped (${idToStop})` });
-
-    return res.json({ success: true, data: response.data });
+    return res.json({ success: true, data: resp.data });
   } catch (err) {
-    console.error('convai stop error', err.response?.data || err.message || err);
+    console.error('convai start error', err.response?.data || err.message);
     return res.status(500).json({ error: err.response?.data || err.message });
   }
 });
 
-// GET /convai/events?channel=yourchannel
-app.get('/convai/events', (req, res) => {
-  const channel = req.query.channel;
-  if (!channel) return res.json({ events: [] });
-  return res.json({ events: agentEvents[channel] || [] });
+// Simple summary (placeholder)
+app.post('/summary', (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'no text' });
+  const summary = text.split('.').slice(0,4).join('. ') + (text.length>200 ? '...' : '');
+  res.json({ summary });
 });
+
+// Quiz: create and fetch
+app.post('/quiz/get', (req, res) => {
+  const { channel = 'default' } = req.body;
+  const questions = [
+    { id: 1, q: 'What is recursion in one sentence?', answer: 'a function calling itself', explanation: 'Recursion is...' },
+    { id: 2, q: 'Which data structure suits DFS? (stack/queue)', answer: 'stack', explanation: 'DFS uses stack.'}
+  ];
+  const quizId = 'quiz_' + uuidv4();
+  quizzes[quizId] = { quizId, channel, questions, createdAt: Date.now() };
+  const publicQs = questions.map(({id,q})=>({id,q}));
+  res.json({ quizId, questions: publicQs });
+});
+
+app.post('/quiz/submit', (req, res) => {
+  const { quizId, questionId, answer, userId = 'anon' } = req.body;
+  const qset = quizzes[quizId];
+  if (!qset) return res.status(404).json({ error: 'quiz not found' });
+  const q = qset.questions.find(x => x.id === Number(questionId));
+  if (!q) return res.status(404).json({ error: 'question not found' });
+  const pass = String(answer).toLowerCase().includes(String(q.answer).toLowerCase());
+  history.push({ userId, quizId, questionId, answer, correct: pass, at: Date.now() });
+  res.json({ correct: pass, expected: q.answer, explanation: q.explanation });
+});
+
+app.get('/history', (req, res) => {
+  res.json({ rows: history.slice().reverse() });
+});
+
+app.listen(PORT, () => console.log('Server running on', PORT));
