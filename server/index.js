@@ -98,9 +98,9 @@ app.post('/convai/start', async (req, res) => {
       // ask Agora to POST events (ASR transcripts, llm replies etc.)
       http_callback: {
         url: callbackUrl,
-        // optional: choose events. Keep default or specify types per docs.
+      
       },
-      // tts and asr settings could be added here if you want to control voice.
+      
     };
 
     const response = await axios.post(
