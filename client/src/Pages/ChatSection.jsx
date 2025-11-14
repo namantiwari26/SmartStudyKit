@@ -1,111 +1,44 @@
 import React, { useState } from "react";
 import axios from "axios";
-
-const SERVER = process.env.REACT_APP_SERVER_URL;
+const SERVER = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
 
 export default function ChatSection() {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage() {
-    if (!input.trim()) return;
-
-    const userMessage = { sender: "user", text: input };
-    setMessages([...messages, userMessage]);
-    setInput("");
-
+  async function send() {
+    if (!text.trim()) return;
+    const user = { id: Date.now(), sender: "you", text };
+    setMessages(prev => [...prev, user]);
+    setText("");
     setLoading(true);
-
     try {
-      const response = await axios.post(`${SERVER}/convai/start`, {
-        channel: "test-user",
-        mode: "chat",
-        message: input,
-      });
-
-      const botMessage = {
-        sender: "bot",
-        text:
-          response.data.data?.reply ||
-          response.data.data?.message ||
-          "AI responded successfully (mock mode)",
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "AI Error. Check backend." },
-      ]);
+      const res = await axios.post(`${SERVER}/convai/start`, { channel: "demo", mode: "chat", message: text });
+      const bot = { id: Date.now()+1, sender: "bot", text: res.data.data?.message || res.data.data?.mock || "AI responded (mock)" };
+      setMessages(prev => [...prev, bot]);
+    } catch (e) {
+      setMessages(prev => [...prev, { id: Date.now()+2, sender: "bot", text: "Server error. Check backend." }]);
     }
-
     setLoading(false);
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Smart Study Chat</h2>
-
-      <div
-        style={{
-          height: "65vh",
-          overflowY: "auto",
-          padding: 10,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-          marginBottom: 20,
-        }}
-      >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              textAlign: msg.sender === "user" ? "right" : "left",
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                background: msg.sender === "user" ? "#4a9fff" : "#e8e8e8",
-                color: msg.sender === "user" ? "white" : "black",
-                padding: "10px 15px",
-                borderRadius: 10,
-                maxWidth: "70%",
-              }}
-            >
-              {msg.text}
-            </span>
+    <div>
+      <h2 style={{ marginBottom: 12 }}>Chat AI</h2>
+      <div style={{ height: "60vh", overflowY: "auto", padding: 12, borderRadius: 8, background: "#fff", border: "1px solid #eef2f6" }}>
+        {messages.map(m => (
+          <div key={m.id} style={{ margin: 8, textAlign: m.sender === "you" ? "right" : "left" }}>
+            <div style={{ display: "inline-block", padding: "8px 12px", borderRadius: 12, background: m.sender === "you" ? "#0b72ff" : "#f1f5f9", color: m.sender === "you" ? "#fff" : "#000" }}>
+              {m.text}
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <input
-          style={{
-            flex: 1,
-            padding: 12,
-            borderRadius: 8,
-            border: "1px solid #ccc",
-          }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask anything..."
-        />
-
-        <button
-          onClick={sendMessage}
-          disabled={loading}
-          style={{
-            padding: "10px 18px",
-            background: "#4a9fff",
-            border: "none",
-            color: "white",
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <input value={text} onChange={e=>setText(e.target.value)} placeholder="Ask study questions..." style={{ flex:1, padding: 12, borderRadius: 8, border: "1px solid #ddd" }} />
+        <button onClick={send} disabled={loading} style={{ padding: "10px 16px", background: "#0b72ff", color:"#fff", border:"none", borderRadius:8 }}>
           {loading ? "..." : "Send"}
         </button>
       </div>

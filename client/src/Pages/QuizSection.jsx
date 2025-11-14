@@ -1,57 +1,27 @@
 import React, { useState } from "react";
 import axios from "axios";
-
-const SERVER = process.env.REACT_APP_SERVER_URL;
+const SERVER = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
 
 export default function QuizSection() {
   const [quiz, setQuiz] = useState(null);
 
-  async function loadQuiz() {
-    const res = await axios.post(`${SERVER}/quiz/get`, {
-      channel: "quiz",
-    });
-
-    setQuiz(res.data.quiz || [
-      { question: "Mock question 1?", answer: "Answer 1" },
-      { question: "Mock question 2?", answer: "Answer 2" },
-    ]);
+  async function load() {
+    const res = await axios.post(`${SERVER}/quiz/get`, { channel: "quiz" });
+    setQuiz(res.data.questions || res.data.quiz || []);
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Quiz Generator</h2>
-
-      <button
-        onClick={loadQuiz}
-        style={{
-          padding: "10px 18px",
-          background: "#4a9fff",
-          border: "none",
-          color: "white",
-          borderRadius: 8,
-        }}
-      >
-        Load Quiz
-      </button>
-
-      {quiz && (
-        <div style={{ marginTop: 20 }}>
-          {quiz.map((q, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#f5f5f5",
-                marginBottom: 15,
-                padding: 12,
-                borderRadius: 8,
-              }}
-            >
-              <strong>Q{i + 1}:</strong> {q.question} <br />
-              <em>Ans: {q.answer}</em>
-            </div>
-          ))}
-        </div>
-      )}
+    <div>
+      <h2>Quiz</h2>
+      <button onClick={load} style={{ padding:"8px 14px", background:"#0b72ff", color:"#fff", border:"none", borderRadius:8 }}>Load Quiz</button>
+      {quiz && <div style={{ marginTop:16 }}>
+        {quiz.map(q => (
+          <div key={q.id} style={{ padding:12, background:"#fff", border:"1px solid #eef2f6", borderRadius:8, marginBottom:10 }}>
+            <strong>Q:</strong> {q.question || q.q || q.qn}
+            <div style={{ marginTop:6, color:"#666" }}>{q.answer ? `Ans: ${q.answer}` : ""}</div>
+          </div>
+        ))}
+      </div>}
     </div>
   );
 }
