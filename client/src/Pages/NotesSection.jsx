@@ -1,65 +1,67 @@
-import React, { useState } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import React, { useState } from "react";
+import axios from "axios";
 
-const initialNotes = [
-  { id: 1, text: "Important: The video discusses the fundamental principles of quantum computing.", timestamp: "10:30 AM" },
-];
+const SERVER = process.env.REACT_APP_SERVER_URL;
 
-const NotesSection = ({ isDarkMode }) => { // Receiving isDarkMode prop
-  const [notes, setNotes] = useState(initialNotes);
-  const [newNote, setNewNote] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editingText, setEditingText] = useState('');
+export default function NotesSection() {
+  const [text, setText] = useState("");
+  const [notes, setNotes] = useState("");
 
-  // ... (CRUD handlers remain the same) ...
+  async function generateNotes() {
+    if (!text.trim()) return;
+
+    const res = await axios.post(`${SERVER}/summary`, {
+      content: text,
+      channel: "notes",
+    });
+
+    setNotes(res.data.summary || "Summary generated (mock)");
+  }
 
   return (
-    <div className="notes-container">
-      <h3 className="notes-heading">Add Note</h3>
+    <div style={{ padding: 20 }}>
+      <h2>Smart Notes Generator</h2>
+
       <textarea
-        placeholder="Write your note here..."
-        value={newNote}
-        onChange={(e) => setNewNote(e.target.value)}
-        className="note-textarea"
+        style={{
+          width: "100%",
+          height: "150px",
+          padding: 10,
+          borderRadius: 8,
+          border: "1px solid #ccc",
+        }}
+        placeholder="Paste study material here..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
       />
+
       <button
-        onClick={() => { /* ... add note logic ... */ }}
-        className="note-add-button"
-        disabled={!newNote.trim()}
+        onClick={generateNotes}
+        style={{
+          marginTop: 10,
+          padding: "10px 18px",
+          background: "#4a9fff",
+          border: "none",
+          color: "white",
+          borderRadius: 8,
+        }}
       >
-        Add Note
+        Generate Notes
       </button>
 
-      <h3 className="notes-heading">Your Notes</h3>
-      <div className="notes-list custom-scrollbar">
-        {notes.length === 0 ? (
-          <p style={{ color: isDarkMode ? '#9ca3af' : '#6b7280', textAlign: 'center', marginTop: '40px' }}>No Notes</p>
-        ) : (
-          notes.map((note) => (
-            <div key={note.id} className="note-item">
-              {editingId === note.id ? (
-                <>
-                  <textarea value={editingText} onChange={(e) => setEditingText(e.target.value)} className="note-textarea" style={{ height: 'auto', marginBottom: '8px' }} rows="3" />
-                  {/* ... Save/Cancel Buttons ... */}
-                </>
-              ) : (
-                <>
-                  <p className="note-text">{note.text}</p>
-                  <div className="note-footer">
-                    <span>{note.timestamp}</span>
-                    <div className="note-actions">
-                      <button className="note-action-button edit-button"><Edit className="w-4 h-4" /></button>
-                      <button className="note-action-button delete-button"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-        )}
-      </div>
+      {notes && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 15,
+            background: "#f5f5f5",
+            borderRadius: 10,
+          }}
+        >
+          <h3>Generated Notes:</h3>
+          <p>{notes}</p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default NotesSection;
+}

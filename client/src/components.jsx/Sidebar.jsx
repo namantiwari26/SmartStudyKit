@@ -7,12 +7,13 @@ export default function Sidebar({ activePage, setActivePage }) {
       style={{
         width: "100%",
         padding: "12px",
-        marginBottom: "10px",
+        marginBottom: "12px",
         background: activePage === name ? "#4a9fff" : "#e4e4e4",
         border: "none",
-        borderRadius: "6px",
+        borderRadius: "8px",
         cursor: "pointer",
-        fontWeight: "bold",
+        fontWeight: "600",
+        fontSize: "15px",
       }}
     >
       {label}
@@ -23,10 +24,11 @@ export default function Sidebar({ activePage, setActivePage }) {
     <div
       style={{
         width: "180px",
-        height: "100%",
+        height: "100vh",
         background: "#f2f2f2",
         padding: "20px",
-        boxShadow: "3px 0px 6px rgba(0,0,0,0.1)",
+        boxShadow: "3px 0px 6px rgba(0, 0, 0, 0.1)",
+        boxSizing: "border-box",
       }}
     >
       {btn("chat", "Chat AI")}

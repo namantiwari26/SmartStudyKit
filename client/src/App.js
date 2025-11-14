@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Sidebar from "./components/Sidebar";
 
+import Sidebar from "./components/Sidebar";
 import ChatSection from "./pages/ChatSection";
 import NotesSection from "./pages/NotesSection";
 import QuizSection from "./pages/QuizSection";
